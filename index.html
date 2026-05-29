@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI シフト最適化エンジン | 上海湯包小館</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0C0C0E;
+  --panel:  #13131A;
+  --card:   #1A1A24;
+  --card2:  #20202E;
+  --border: #2A2A3E;
+  --border2:#363650;
+  --text:   #F0EFF8;
+  --muted:  #7A7A9A;
+  --dim:    #444460;
+  --green:  #00D46A;
+  --gdim:   rgba(0,212,106,.12);
+  --amber:  #FFB020;
+  --adim:   rgba(255,176,32,.12);
+  --red:    #FF4560;
+  --rdim:   rgba(255,69,96,.12);
+  --blue:   #4DA6FF;
+  --bdim:   rgba(77,166,255,.12);
+  --purple: #A855F7;
+  --pdim:   rgba(168,85,247,.12);
+  --gold:   #C9872B;
+  --mono:   'DM Mono', monospace;
+  --sans:   'Noto Sans JP', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 13px; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+/* ===== TOPBAR ===== */
+.topbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex; align-items: center; gap: 16px;
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(10px);
+}
+.topbar-logo { font-size: 18px; }
+.topbar-title { font-size: 13px; font-weight: 700; }
+.topbar-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.topbar-chip { margin-left: auto; font-size: 10px; font-family: var(--mono); background: var(--gdim); color: var(--green); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(0,212,106,.3); }
+
+/* ===== LAYOUT ===== */
+.layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 52px); }
+@media(max-width:900px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+/* ===== SIDEBAR ===== */
+.sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; position: sticky; top: 52px; height: calc(100vh - 52px); }
+.sb-section { padding: 6px 20px 4px; font-size: 9px; font-weight: 700; color: var(--dim); letter-spacing: .12em; text-transform: uppercase; }
+.sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; cursor: pointer; color: var(--muted); font-size: 12px; border: none; background: none; width: 100%; text-align: left; font-family: var(--sans); border-left: 2px solid transparent; transition: all .12s; }
+.sb-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.sb-item.active { color: var(--green); background: var(--gdim); border-left-color: var(--green); }
+.sb-divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* ===== MAIN ===== */
+.main { padding: 24px 28px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; animation: fadeUp .18s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ===== COMMON ===== */
+.sec-title { font-size: 11px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+.sec-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.sec-title:first-child { margin-top: 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+.card2 { background: var(--card2); border: 1px solid var(--border2); border-radius: 8px; padding: 14px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+@media(max-width:700px){ .g2,.g3,.g4{grid-template-columns:1fr} }
+
+/* ===== KPI ===== */
+.kpi { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.kpi-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; font-family: var(--mono); }
+.kpi-val { font-size: 24px; font-weight: 700; font-family: var(--mono); line-height: 1.1; }
+.kpi-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+/* ===== FORM ===== */
+.form-group { margin-bottom: 14px; }
+.form-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; display: block; }
+.form-inp { width: 100%; padding: 9px 12px; background: var(--panel); border: 1px solid var(--border2); border-radius: 7px; color: var(--text); font-size: 13px; font-family: var(--mono); outline: none; transition: border .15s; }
+.form-inp:focus { border-color: var(--green); }
+.form-sel { width: 100%; padding: 9px 12px; background: var(--panel); border: 1px solid var(--border2); border-radius: 7px; color: var(--text); font-size: 12px; font-family: var(--sans); outline: none; -webkit-appearance: none; appearance: none; }
+.btn { padding: 9px 18px; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.btn-primary { background: var(--green); color: #000; }
+.btn-primary:hover { background: #00F070; }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
+.btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+.btn-sm { padding: 5px 12px; font-size: 11px; }
+
+/* ===== BADGE ===== */
+.badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 12px; font-family: var(--mono); }
+.bg { background: var(--gdim); color: var(--green); border: 1px solid rgba(0,212,106,.25); }
+.ba { background: var(--adim); color: var(--amber); border: 1px solid rgba(255,176,32,.25); }
+.br { background: var(--rdim); color: var(--red); border: 1px solid rgba(255,69,96,.25); }
+.bb { background: var(--bdim); color: var(--blue); border: 1px solid rgba(77,166,255,.25); }
+.bp { background: var(--pdim); color: var(--purple); border: 1px solid rgba(168,85,247,.25); }
+
+/* ===== STAFF CARD ===== */
+.staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.staff-card { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; transition: border-color .12s; cursor: pointer; }
+.staff-card:hover { border-color: var(--border2); }
+.staff-card.selected { border-color: var(--green); background: var(--gdim); }
+.staff-card.rest { border-color: var(--border); opacity: .55; }
+.staff-card.rest.selected { border-color: var(--amber); background: var(--adim); opacity: 1; }
+.staff-name { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.staff-role-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.skill-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.chip { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+.chip-f { background: rgba(0,212,106,.15); color: var(--green); }
+.chip-k { background: rgba(255,176,32,.15); color: var(--amber); }
+.chip-t { background: rgba(77,166,255,.15); color: var(--blue); }
+.chip-o { background: rgba(255,255,255,.08); color: var(--muted); }
+.skill-score { display: flex; gap: 2px; margin-top: 5px; }
+.score-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); }
+.score-dot.filled { background: var(--green); }
+.score-dot.filled.amber { background: var(--amber); }
+.score-dot.filled.blue { background: var(--blue); }
+
+/* ===== LEVEL CARDS ===== */
+.level-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.level-badge-big { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; font-family: var(--mono); flex-shrink: 0; }
+.level-title { font-size: 16px; font-weight: 700; }
+.level-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ===== SHIFT BLOCK ===== */
+.shift-tl { overflow-x: auto; }
+.shift-tl-inner { min-width: 700px; }
+.shift-hd { display: flex; background: var(--panel); border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none; }
+.shift-name-col { width: 120px; flex-shrink: 0; padding: 6px 10px; font-size: 9px; font-weight: 700; color: var(--dim); border-right: 1px solid var(--border); }
+.shift-hours { flex: 1; display: grid; grid-template-columns: repeat(28, 1fr); }
+.shift-hour { text-align: center; padding: 5px 0; font-size: 9px; font-family: var(--mono); color: var(--dim); border-right: 1px solid rgba(255,255,255,.04); }
+.shift-row { display: flex; border: 1px solid var(--border); border-top: none; }
+.shift-row:last-child { border-radius: 0 0 6px 6px; }
+.shift-row:hover { background: rgba(255,255,255,.02); }
+.shift-staff { width: 120px; flex-shrink: 0; padding: 6px 10px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
+.shift-sname { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shift-srole { font-size: 8px; color: var(--dim); margin-top: 1px; }
+.shift-cells { flex: 1; display: grid; grid-template-columns: repeat(28, 1fr); position: relative; height: 34px; }
+.shift-cell { border-right: 1px solid rgba(255,255,255,.06); }
+.shift-bar { position: absolute; top: 5px; height: 24px; border-radius: 4px; display: flex; align-items: center; padding: 0 6px; font-size: 8px; font-weight: 700; overflow: hidden; white-space: nowrap; }
+
+/* ===== PERFORMANCE TABLE ===== */
+.perf-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.perf-row:last-child { border-bottom: none; }
+.perf-label { flex: 1; color: var(--muted); }
+.perf-bars { display: flex; gap: 4px; flex: 2; }
+.perf-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.perf-bar { height: 100%; border-radius: 3px; transition: width .5s; }
+
+/* ===== WANT MODAL ===== */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--card); border: 1px solid var(--border2); border-radius: 14px; padding: 24px; width: 380px; max-width: 95vw; max-height: 80vh; overflow-y: auto; }
+.modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.modal-close { float: right; background: var(--border); border: none; color: var(--muted); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ===== PROGRESS ===== */
+.progress-ring { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ring-label { font-size: 9px; color: var(--muted); }
+.generating { display: flex; gap: 4px; align-items: center; font-size: 12px; color: var(--green); }
+.dot-anim { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: bounce .8s infinite; }
+.dot-anim:nth-child(2){ animation-delay:.15s }
+.dot-anim:nth-child(3){ animation-delay:.3s }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+input[type=range] { -webkit-appearance:none; width:100%; height:3px; border-radius:2px; background:var(--border2); outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--green); cursor:pointer; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-logo">🤖</span>
+  <div>
+    <div class="topbar-title">AIシフト最適化エンジン</div>
+    <div class="topbar-sub">上海湯包小館 岡崎店 — powered by CLOGO</div>
+  </div>
+  <span class="topbar-chip">DEMO v2.0 × Claude AI</span>
+  <button onclick="showApiKeyModal()" style="margin-left:8px;padding:4px 12px;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:10px;cursor:pointer;font-family:var(--sans)" id="apiKeyBtn">🔑 APIキー設定</button>
+</div>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-section">メイン</div>
+  <button class="sb-item active" onclick="goto('setup')"><span>⚙️</span>基本設定</button>
+  <button class="sb-item" onclick="goto('staff')"><span>👥</span>スタッフ管理</button>
+  <button class="sb-item" onclick="goto('wants')"><span>📝</span>希望シフト収集</button>
+  <div class="sb-divider"></div>
+  <div class="sb-section">AI最適化</div>
+  <button class="sb-item" onclick="goto('generate')"><span>✨</span>シフト自動生成</button>
+  <button class="sb-item" onclick="goto('result')"><span>📊</span>推奨結果 比較</button>
+  <div class="sb-divider"></div>
+  <div class="sb-section">分析</div>
+  <button class="sb-item" onclick="goto('performance')"><span>📈</span>パフォーマンス分析</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ===== PAGE: 基本設定 ===== -->
+<div class="page active" id="page-setup">
+  <div class="sec-title">基本設定 — シフト生成の前提条件を入力</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-header" style="font-size:13px;font-weight:700;margin-bottom:14px">📅 対象日設定</div>
+      <div class="form-group">
+        <span class="form-lbl">対象日</span>
+        <input type="date" class="form-inp" id="targetDate" value="2026-05-01">
+      </div>
+      <div class="form-group">
+        <span class="form-lbl">曜日（自動判定）</span>
+        <div class="form-inp" id="wdDisplay" style="background:var(--card2);color:var(--green);font-weight:700">—</div>
+      </div>
+      <div class="form-group">
+        <span class="form-lbl">売上予測額（円）</span>
+        <input type="number" class="form-inp" id="salesInput" value="500000" step="10000" oninput="updateSalesSlider()">
+        <input type="range" id="salesSlider" min="100000" max="1000000" step="10000" value="500000" style="margin-top:8px" oninput="document.getElementById('salesInput').value=this.value;calcRequired()">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);font-family:var(--mono);margin-top:3px"><span>10万</span><span>100万</span></div>
+      </div>
+      <div class="form-group">
+        <span class="form-lbl">特殊指数パターン</span>
+        <select class="form-sel" id="indexPattern" onchange="calcRequired()">
+          <option value="normal">通常平日</option>
+          <option value="weekend">土日・祝日</option>
+          <option value="peak_season">繁忙期（GW・お盆・年末）</option>
+          <option value="event">施設イベント日</option>
+          <option value="holiday_after">連休明け</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="font-size:13px;font-weight:700;margin-bottom:14px">🎯 必要人員（自動計算）</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="kpi"><div class="kpi-lbl">予測基準時間</div><div class="kpi-val" id="baseH" style="color:var(--text)">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">フロア人員</div><div class="kpi-val" id="floorH" style="color:var(--green)">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">キッチン人員</div><div class="kpi-val" id="kitH" style="color:var(--amber)">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">湯包人員</div><div class="kpi-val" id="tangH" style="color:var(--blue)">—</div></div>
+      </div>
+      <div class="form-group">
+        <span class="form-lbl">平均時給（円）</span>
+        <input type="number" class="form-inp" id="wageInput" value="1050" step="50" oninput="calcRequired()">
+      </div>
+      <div class="card2" style="margin-top:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">推定人件費・目標人件費率</div>
+        <div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--red)" id="laborCostDisp">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px" id="laborRateDisp">人件費率: —</div>
+        <div style="margin-top:8px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div id="laborBar" style="height:100%;background:var(--green);width:0%;transition:width .4s;border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="form-group">
+          <span class="form-lbl">固定工数（開店準備・清掃）</span>
+          <select class="form-sel" id="fixedCost">
+            <option value="3">小規模日（3時間）</option>
+            <option value="4" selected>標準（4時間）</option>
+            <option value="5">繁忙日（5時間）</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:12px;font-weight:700;margin-bottom:10px">🏪 営業時間帯別 必要人員</div>
+    <div id="timeRequireChart" style="display:flex;align-items:flex-end;gap:2px;height:70px;margin-bottom:6px"></div>
+    <div id="timeRequireLabels" style="display:flex;gap:2px;font-size:8px;color:var(--dim);font-family:var(--mono)"></div>
+  </div>
+  <button class="btn btn-primary" style="width:100%;padding:14px;font-size:14px" onclick="goto('staff');updateStaffList()">
+    次へ：スタッフ設定 →
+  </button>
+</div>
+
+<!-- ===== PAGE: スタッフ管理 ===== -->
+<div class="page" id="page-staff">
+  <div class="sec-title">スタッフ管理 — スキルスコアを設定</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn btn-ghost btn-sm" onclick="filterSF('all')" id="sf-all" style="border-color:var(--green);color:var(--green)">全員</button>
+    <button class="btn btn-ghost btn-sm" onclick="filterSF('floor')" id="sf-floor">フロア</button>
+    <button class="btn btn-ghost btn-sm" onclick="filterSF('kitchen')" id="sf-kitchen">キッチン</button>
+    <button class="btn btn-ghost btn-sm" onclick="filterSF('tangbao')" id="sf-tangbao">湯包</button>
+    <div style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">スキルスコア: ●=高 ●=中 ○=低</div>
+  </div>
+  <div class="staff-grid" id="staffGrid"></div>
+</div>
+
+<!-- ===== PAGE: 希望シフト収集 ===== -->
+<div class="page" id="page-wants">
+  <div class="sec-title">希望シフト収集 — 対象日の出勤可否を設定</div>
+  <div class="card" style="margin-bottom:14px;padding:14px 18px;display:flex;align-items:center;gap:14px">
+    <div style="font-size:24px">📅</div>
+    <div>
+      <div style="font-size:13px;font-weight:700" id="wantsDateDisp">—</div>
+      <div style="font-size:11px;color:var(--muted)">各スタッフの出勤可否と希望時間帯を設定してください</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="setAllStatus('ok')">全員出勤可</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAllStatus('random')">ランダム設定</button>
+    </div>
+  </div>
+  <div id="wantsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+  <div style="margin-top:16px">
+    <button class="btn btn-primary" style="width:100%;padding:14px;font-size:14px" onclick="goto('generate')">
+      AIシフト生成へ →
+    </button>
+  </div>
+</div>
+
+<!-- ===== PAGE: AI生成 ===== -->
+<div class="page" id="page-generate">
+  <div class="sec-title">AI シフト自動生成</div>
+  <div class="card" style="text-align:center;padding:32px">
+    <div style="font-size:40px;margin-bottom:16px">🤖</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px">3レベルの推奨シフトを同時生成</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.8">
+      スタッフのスキルスコア・希望シフト・売上予測・必要人員を<br>
+      組み合わせ最適化アルゴリズムで解析します
+    </div>
+    <div class="g3" style="margin-bottom:24px;text-align:left">
+      <div class="card2" style="border-color:rgba(0,212,106,.3)">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">Level 1</div>
+        <div style="font-size:11px;color:var(--muted)">全スタッフ含む理想シフト<br>休み希望者への交渉が必要</div>
+      </div>
+      <div class="card2" style="border-color:rgba(255,176,32,.3)">
+        <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">Level 2</div>
+        <div style="font-size:11px;color:var(--muted)">出勤確定スタッフのみ<br>交渉なしで即実行可能</div>
+      </div>
+      <div class="card2" style="border-color:rgba(168,85,247,.3)">
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">Level 3</div>
+        <div style="font-size:11px;color:var(--muted)">他店応援・タイミー含む<br>不足分を外部リソースで補完</div>
+      </div>
+    </div>
+    <div id="genStatus" style="margin-bottom:16px;min-height:28px;display:flex;align-items:center;justify-content:center"></div>
+    <button class="btn btn-primary" id="genBtn" style="padding:14px 40px;font-size:14px" onclick="runGenerate()">
+      ✨ AI最適化を実行
+    </button>
+  </div>
+
+  <!-- 生成ログ -->
+  <div class="card" id="genLogCard" style="display:none">
+    <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--green)">🔄 最適化ログ</div>
+    <div id="genLog" style="font-size:11px;font-family:var(--mono);color:var(--muted);line-height:2"></div>
+  </div>
+</div>
+
+<!-- ===== PAGE: 推奨結果 ===== -->
+<div class="page" id="page-result">
+  <div class="sec-title">推奨結果 比較 — 3レベルの詳細分析</div>
+
+  <!-- Claude AI分析パネル -->
+  <div id="aiAnalysisPanel"></div>
+
+  <!-- 比較KPIテーブル -->
+  <div class="card" id="compareKPI" style="padding:0;overflow:hidden"></div>
+
+  <!-- Level 1 -->
+  <div style="margin-top:20px">
+    <div class="level-header">
+      <div class="level-badge-big" style="background:var(--gdim);color:var(--green);border:1px solid rgba(0,212,106,.3)">L1</div>
+      <div>
+        <div class="level-title" style="color:var(--green)">Level 1 — 全員含む理想シフト</div>
+        <div class="level-sub">休み希望スタッフへの交渉が必要。最高パフォーマンスを実現</div>
+      </div>
+      <span class="badge bg" style="margin-left:auto;font-size:11px;padding:4px 12px">◎ 推奨</span>
+    </div>
+    <div class="card">
+      <div id="l1Info" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <div class="shift-tl"><div class="shift-tl-inner" id="l1Timeline"></div></div>
+      <div id="l1Negotiate" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Level 2 -->
+  <div style="margin-top:20px">
+    <div class="level-header">
+      <div class="level-badge-big" style="background:var(--adim);color:var(--amber);border:1px solid rgba(255,176,32,.3)">L2</div>
+      <div>
+        <div class="level-title" style="color:var(--amber)">Level 2 — 確定スタッフのみ</div>
+        <div class="level-sub">交渉不要。即実行可能だが人員不足が発生する場合あり</div>
+      </div>
+      <span class="badge ba" style="margin-left:auto;font-size:11px;padding:4px 12px">○ 代替案</span>
+    </div>
+    <div class="card">
+      <div id="l2Info" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <div class="shift-tl"><div class="shift-tl-inner" id="l2Timeline"></div></div>
+      <div id="l2Alert" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Level 3 -->
+  <div style="margin-top:20px">
+    <div class="level-header">
+      <div class="level-badge-big" style="background:var(--pdim);color:var(--purple);border:1px solid rgba(168,85,247,.3)">L3</div>
+      <div>
+        <div class="level-title" style="color:var(--purple)">Level 3 — 外部リソース含む</div>
+        <div class="level-sub">他店舗応援・タイミー等で不足分を補完。追加コストが発生</div>
+      </div>
+      <span class="badge bp" style="margin-left:auto;font-size:11px;padding:4px 12px">△ 最終手段</span>
+    </div>
+    <div class="card">
+      <div id="l3Info" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <div class="shift-tl"><div class="shift-tl-inner" id="l3Timeline"></div></div>
+      <div id="l3External" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: パフォーマンス分析 ===== -->
+<div class="page" id="page-performance">
+  <div class="sec-title">レベル別 パフォーマンス分析</div>
+  <div id="perfArea"></div>
+</div>
+
+</main>
+</div><!-- /layout -->
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const WD_COEF = {月:.00018185,火:.00018475,水:.00017804,木:.00017269,金:.00017650,土:.00014950,日:.00014864};
+const WD_NAMES = ['日','月','火','水','木','金','土'];
+const TIME_SLOTS = ['8:00','8:30','9:00','9:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
+const PATTERN_COEF = {normal:1.0, weekend:0.92, peak_season:1.18, event:1.12, holiday_after:0.85};
+const WD_INDEX = {
+  日:[6,8,12,16,18,16,12,8,5,3,2,4,8,12,14,12,10,8,6,4,2,1,0,0,0,0,0,0],
+  月:[3,5,8,14,22,20,14,8,4,2,1,2,4,6,8,10,12,10,8,6,4,2,1,0,0,0,0,0],
+  火:[3,5,8,14,22,20,14,8,4,2,1,2,4,6,8,10,12,10,8,6,4,2,1,0,0,0,0,0],
+  水:[3,5,8,14,22,20,14,8,4,2,1,2,4,6,8,10,12,10,8,6,4,2,1,0,0,0,0,0],
+  木:[3,5,8,14,22,20,14,8,4,2,1,2,4,6,8,10,12,10,8,6,4,2,1,0,0,0,0,0],
+  金:[4,6,9,15,20,18,12,7,4,2,1,2,3,5,7,9,14,16,15,12,8,4,2,1,0,0,0,0],
+  土:[5,7,11,14,16,14,10,7,5,3,2,3,6,10,14,16,15,12,10,8,5,3,1,0,0,0,0,0],
+};
+
+const STAFF_MASTER = [
+  {id:1, name:'外山　雄介', role:'店長', skills:{floor:5,kitchen:5,tangbao:4}, wage:0, maxH:10},
+  {id:2, name:'日比野　大', role:'社員', skills:{floor:5,kitchen:5,tangbao:3}, wage:0, maxH:9},
+  {id:3, name:'井上　充喜', role:'社員', skills:{floor:4,kitchen:5,tangbao:2}, wage:0, maxH:9},
+  {id:4, name:'渡辺　昌子', role:'ＰＡ', skills:{floor:4,kitchen:2,tangbao:5}, wage:1050, maxH:8},
+  {id:5, name:'納土　卓也', role:'ＰＡ', skills:{floor:1,kitchen:5,tangbao:0}, wage:1050, maxH:8},
+  {id:6, name:'藤井　彩乃', role:'ＰＡ', skills:{floor:4,kitchen:0,tangbao:0}, wage:950, maxH:6},
+  {id:7, name:'榊原　怜弥', role:'ＰＡ', skills:{floor:1,kitchen:5,tangbao:0}, wage:1100, maxH:8},
+  {id:8, name:'成瀬　夢華', role:'ＰＡ', skills:{floor:3,kitchen:2,tangbao:0}, wage:950, maxH:6},
+  {id:9, name:'圓崎　美穂子',role:'ＰＡ', skills:{floor:2,kitchen:3,tangbao:3}, wage:1000, maxH:7},
+  {id:10,name:'新海　英子', role:'ＰＡ', skills:{floor:2,kitchen:3,tangbao:3}, wage:1000, maxH:6},
+  {id:11,name:'松澤　友美', role:'ＰＡ', skills:{floor:3,kitchen:0,tangbao:0}, wage:950, maxH:5},
+  {id:12,name:'尾崎　絵美', role:'ＰＡ', skills:{floor:1,kitchen:0,tangbao:4}, wage:1000, maxH:6},
+  {id:13,name:'若杉　マリア',role:'ＰＡ', skills:{floor:2,kitchen:2,tangbao:2}, wage:950, maxH:6},
+  {id:14,name:'鈴木　絵梨', role:'ＰＡ', skills:{floor:4,kitchen:1,tangbao:0}, wage:1000, maxH:6},
+  {id:15,name:'中塚　琴美', role:'ＰＡ', skills:{floor:1,kitchen:0,tangbao:4}, wage:1000, maxH:5},
+  {id:16,name:'倉橋　賢太', role:'ＰＡ', skills:{floor:3,kitchen:2,tangbao:0}, wage:1050, maxH:8},
+  {id:17,name:'田中　捺月', role:'ＰＡ', skills:{floor:3,kitchen:2,tangbao:0}, wage:950, maxH:6},
+  {id:18,name:'工藤　千愛', role:'ＰＡ', skills:{floor:3,kitchen:1,tangbao:0}, wage:950, maxH:6},
+  {id:19,name:'髙橋　康聖', role:'ＰＡ', skills:{floor:3,kitchen:0,tangbao:0}, wage:950, maxH:5},
+  {id:20,name:'杉本　龍大', role:'ＰＡ', skills:{floor:3,kitchen:2,tangbao:0}, wage:1000, maxH:8},
+];
+
+// 出勤希望状態（ok=出勤可、rest=休み希望、unknown=未回答）
+let staffWants = {};
+let sfFilter = 'all';
+let generatedLevels = null;
+
+// ============================================================
+// ROUTING
+// ============================================================
+function goto(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll(`[onclick="goto('${id}')"]`).forEach(b=>b.classList.add('active'));
+  if(id==='staff') renderStaffGrid();
+  if(id==='wants') renderWants();
+  if(id==='performance' && generatedLevels) renderPerformance();
+}
+
+// ============================================================
+// SETUP
+// ============================================================
+function getWD(){
+  const d = new Date(document.getElementById('targetDate').value);
+  return WD_NAMES[d.getDay()];
+}
+function calcRequired(){
+  const sales = parseInt(document.getElementById('salesInput').value)||0;
+  const wd = getWD();
+  const pattern = document.getElementById('indexPattern').value;
+  const wage = parseInt(document.getElementById('wageInput').value)||1050;
+  const fixedH = parseInt(document.getElementById('fixedCost').value)||4;
+  const pCoef = PATTERN_COEF[pattern]||1;
+  const coef = WD_COEF[wd]||0.000177;
+
+  // 改善後モデル: 固定工数 + 変動工数
+  const varH = sales * coef * pCoef;
+  const baseH = varH + fixedH;
+  const floorH = baseH * 0.48;
+  const kitH   = baseH * 0.52;
+  const tangH  = Math.max(2, Math.round(sales / 35000 * pCoef * 10)/10);
+  const labor  = Math.round(baseH * wage);
+  const rate   = sales>0 ? (labor/sales*100) : 0;
+  const rc = rate<15?'var(--green)':rate<20?'var(--amber)':'var(--red)';
+
+  document.getElementById('wdDisplay').textContent = wd+'曜日';
+  document.getElementById('baseH').textContent = baseH.toFixed(1)+'h';
+  document.getElementById('floorH').textContent = floorH.toFixed(1)+'h';
+  document.getElementById('kitH').textContent   = kitH.toFixed(1)+'h';
+  document.getElementById('tangH').textContent  = tangH.toFixed(1)+'h';
+  document.getElementById('laborCostDisp').textContent = labor.toLocaleString('ja-JP')+'円';
+  document.getElementById('laborRateDisp').textContent = '人件費率: '+rate.toFixed(1)+'%';
+  document.getElementById('laborRateDisp').style.color = rc;
+  document.getElementById('laborBar').style.width = Math.min(100,rate*5)+'%';
+  document.getElementById('laborBar').style.background = rc;
+
+  // 時間帯別チャート
+  const idx = WD_INDEX[wd]||WD_INDEX['水'];
+  const maxV = Math.max(...idx);
+  const chart = document.getElementById('timeRequireChart');
+  const labels = document.getElementById('timeRequireLabels');
+  chart.innerHTML = TIME_SLOTS.map((t,i)=>{
+    const need = Math.max(0, Math.round(floorH * idx[i] / 100));
+    const h = maxV>0?Math.round(idx[i]/maxV*66):0;
+    const col = idx[i]>12?'var(--green)':idx[i]>6?'var(--amber)':'var(--dim)';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div style="font-size:8px;font-family:var(--mono);color:${col};margin-bottom:2px">${need||''}</div>
+      <div style="width:100%;background:${col};height:${h}px;border-radius:2px 2px 0 0;min-height:2px"></div>
+    </div>`;
+  }).join('');
+  labels.innerHTML = TIME_SLOTS.map((t,i)=>`<div style="flex:1;text-align:center">${i%4===0?t.replace(':00',''):'|'}</div>`).join('');
+
+  return {sales,wd,pattern,pCoef,coef,baseH,floorH,kitH,tangH,labor,rate,wage,fixedH};
+}
+
+function updateSalesSlider(){
+  document.getElementById('salesSlider').value = document.getElementById('salesInput').value;
+  calcRequired();
+}
+
+document.getElementById('targetDate').addEventListener('change', calcRequired);
+calcRequired();
+
+// ============================================================
+// STAFF GRID
+// ============================================================
+function chipClass(type){ return type==='floor'?'chip-f':type==='kitchen'?'chip-k':type==='tangbao'?'chip-t':'chip-o'; }
+function chipLabel(k){ return k==='floor'?'フロア':k==='kitchen'?'キッチン':k==='tangbao'?'湯包':'—'; }
+function scoreDots(score, maxScore=5, cls=''){
+  return Array(maxScore).fill(0).map((_,i)=>
+    `<div class="score-dot ${i<score?'filled '+cls:''}"></div>`
+  ).join('');
+}
+function renderStaffGrid(){
+  const filtered = sfFilter==='all' ? STAFF_MASTER :
+    sfFilter==='floor' ? STAFF_MASTER.filter(s=>s.skills.floor>=3) :
+    sfFilter==='kitchen' ? STAFF_MASTER.filter(s=>s.skills.kitchen>=3) :
+    STAFF_MASTER.filter(s=>s.skills.tangbao>=3);
+  const want = staffWants;
+  document.getElementById('staffGrid').innerHTML = filtered.map(s=>{
+    const w = want[s.id]||'ok';
+    const selected = w==='ok';
+    const isRest = w==='rest';
+    const skills = Object.entries(s.skills).filter(([k,v])=>v>0);
+    const roleC = s.role==='店長'?'br':s.role==='社員'?'ba':'bg';
+    return `<div class="staff-card ${isRest?'rest':''}" onclick="openStaffModal(${s.id})">
+      <div class="staff-role-row">
+        <span class="badge ${roleC}">${s.role}</span>
+        ${isRest?'<span class="badge ba" style="font-size:8px">休み希望</span>':'<span class="badge bg" style="font-size:8px">出勤可</span>'}
+      </div>
+      <div class="staff-name">${s.name}</div>
+      <div class="skill-chips">
+        ${skills.map(([k,v])=>`<span class="chip ${chipClass(k)}">${chipLabel(k)} ${'★'.repeat(Math.min(v,3))}</span>`).join('')}
+      </div>
+      <div class="skill-score">${scoreDots(s.skills.floor,5,'')}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:4px;font-family:var(--mono)">
+        時給${s.wage||'社員'}円 | 最大${s.maxH}h
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterSF(f){
+  sfFilter=f;
+  ['all','floor','kitchen','tangbao'].forEach(x=>{
+    const el=document.getElementById('sf-'+x);if(!el)return;
+    el.style.borderColor=x===f?'var(--green)':'var(--border2)';
+    el.style.color=x===f?'var(--green)':'var(--muted)';
+  });
+  renderStaffGrid();
+}
+
+// スタッフ詳細モーダル（簡易）
+function openStaffModal(id){
+  const s = STAFF_MASTER.find(x=>x.id===id);
+  if(!s)return;
+  const cur = staffWants[id]||'ok';
+  staffWants[id] = cur==='ok'?'rest':'ok';
+  renderStaffGrid();
+  if(document.getElementById('page-wants').classList.contains('active')) renderWants();
+}
+
+// ============================================================
+// WANTS COLLECTION
+// ============================================================
+function renderWants(){
+  const d = document.getElementById('targetDate').value;
+  document.getElementById('wantsDateDisp').textContent = d + '（'+getWD()+'曜日）の出勤希望';
+  document.getElementById('wantsGrid').innerHTML = STAFF_MASTER.map(s=>{
+    const w = staffWants[s.id]||'ok';
+    const isRest = w==='rest';
+    const roleC = s.role==='店長'?'br':s.role==='社員'?'ba':'bg';
+    return `<div class="card2" style="border-color:${isRest?'rgba(255,176,32,.3)':'rgba(0,212,106,.2)'}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="badge ${roleC}">${s.role}</span>
+        <span style="font-size:12px;font-weight:600">${s.name}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm ${!isRest?'btn-primary':''}" style="${!isRest?'':'background:var(--border);color:var(--muted)'}" onclick="setWant(${s.id},'ok')">出勤可</button>
+        <button class="btn btn-sm ${isRest?'':'btn-ghost'}" style="${isRest?'background:var(--amber);color:#000;border:none':''}; font-size:11px" onclick="setWant(${s.id},'rest')">休み希望</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setWant(id, status){
+  staffWants[id] = status;
+  renderWants();
+}
+function setAllStatus(type){
+  if(type==='ok') STAFF_MASTER.forEach(s=>staffWants[s.id]='ok');
+  else STAFF_MASTER.forEach(s=>staffWants[s.id]=Math.random()>.35?'ok':'rest');
+  renderWants();
+}
+
+// ============================================================
+// AI GENERATE
+// ============================================================
+// ============================================================
+// Claude API KEY（ここに入力）
+// ============================================================
+let CLAUDE_API_KEY = localStorage.getItem('claude_api_key') || '';
+
+function showApiKeyModal(){
+  const key = prompt('Claude APIキーを入力してください（sk-ant-...）\n※入力したキーはブラウザに保存されます');
+  if(key && key.startsWith('sk-ant-')){
+    CLAUDE_API_KEY = key;
+    localStorage.setItem('claude_api_key', key);
+    return true;
+  } else if(key) {
+    alert('APIキーの形式が正しくありません（sk-ant-で始まる必要があります）');
+    return false;
+  }
+  return false;
+}
+
+async function callClaudeAPI(prompt){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if(!res.ok){
+    const err = await res.json();
+    throw new Error(err.error?.message || 'API Error');
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function runGenerate(){
+  // APIキー確認
+  if(!CLAUDE_API_KEY){
+    if(!showApiKeyModal()) return;
+  }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.textContent = '最適化中...';
+  document.getElementById('genLogCard').style.display='block';
+  const log = document.getElementById('genLog');
+  log.innerHTML='';
+  document.getElementById('genStatus').innerHTML = '<div class="generating"><div class="dot-anim"></div><div class="dot-anim"></div><div class="dot-anim"></div> AIが最適解を計算中...</div>';
+
+  const cfg = calcRequired();
+  const wd = getWD();
+
+  const addLog = (msg, color='var(--muted)')=>{
+    log.innerHTML += `<div style="color:${color}">→ ${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+  };
+
+  try {
+    addLog('スタッフマスター読み込み完了（'+STAFF_MASTER.length+'名）', 'var(--green)');
+    await delay(200);
+    addLog('出勤可:'+STAFF_MASTER.filter(s=>!isRest(s.id)).length+'名 / 休み希望:'+STAFF_MASTER.filter(s=>isRest(s.id)).length+'名');
+    await delay(200);
+    addLog('必要人員: フロア'+cfg.floorH.toFixed(1)+'h / キッチン'+cfg.kitH.toFixed(1)+'h / 湯包'+cfg.tangH.toFixed(1)+'h');
+    await delay(200);
+    addLog('Claude AIに送信中...', 'var(--blue)');
+
+    // スタッフデータ整形
+    const staffData = STAFF_MASTER.map(s => ({
+      名前: s.name,
+      役職: s.role,
+      出勤: isRest(s.id) ? '休み希望' : '出勤可',
+      スキル: `フロア${s.skills.floor} キッチン${s.skills.kitchen} 湯包${s.skills.tangbao}`,
+      最大時間: s.maxH + 'h',
+      時給: s.wage + '円'
+    }));
+
+    const okStaff = STAFF_MASTER.filter(s=>!isRest(s.id));
+    const restStaff = STAFF_MASTER.filter(s=>isRest(s.id));
+
+    const prompt = `あなたは飲食店の熟練シフトマネージャーAIです。以下のデータを分析して最適なシフト提案をしてください。
+
+【店舗】上海湯包小館 岡崎店
+【対象日】${wd}曜日
+【売上目標】${cfg.sales.toLocaleString()}円
+【必要工数】フロア${cfg.floorH.toFixed(1)}h / キッチン${cfg.kitH.toFixed(1)}h / 湯包${cfg.tangH.toFixed(1)}h
+【平均時給】${cfg.wage}円
+
+【スタッフ一覧（スキル1〜5段階）】
+${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル} / 最大${s.最大時間} / ${s.時給}`).join('\n')}
+
+【出勤可スタッフ${okStaff.length}名】${okStaff.map(s=>s.name).join('、')}
+【休み希望スタッフ${restStaff.length}名】${restStaff.map(s=>s.name).join('、') || 'なし'}
+
+以下の3つのシフト案をJSON形式で返してください。JSONのみ返し説明文は不要です：
+
+{
+  "analysis": "全体状況の分析コメント（100字以内）",
+  "level1": {
+    "title": "Level 1: 全力体制",
+    "comment": "このレベルの特徴（50字以内）",
+    "recommendation": "推奨度コメント（50字以内）",
+    "staff": [
+      {"name": "スタッフ名", "position": "フロアまたはキッチンまたは湯包", "start": "10:00", "end": "16:00", "reason": "配置理由（30字以内）"}
+    ],
+    "risk": "リスク・注意点（50字以内）"
+  },
+  "level2": {
+    "title": "Level 2: 確定スタッフ体制",
+    "comment": "このレベルの特徴（50字以内）",
+    "recommendation": "推奨度コメント（50字以内）",
+    "staff": [
+      {"name": "スタッフ名", "position": "フロアまたはキッチンまたは湯包", "start": "10:00", "end": "16:00", "reason": "配置理由（30字以内）"}
+    ],
+    "risk": "リスク・注意点（50字以内）"
+  },
+  "level3": {
+    "title": "Level 3: 外部リソース活用",
+    "comment": "このレベルの特徴（50字以内）",
+    "recommendation": "推奨度コメント（50字以内）",
+    "staff": [
+      {"name": "スタッフ名またはタイミー①", "position": "フロアまたはキッチンまたは湯包", "start": "10:00", "end": "16:00", "reason": "配置理由（30字以内）"}
+    ],
+    "risk": "リスク・注意点（50字以内）"
+  },
+  "bestLevel": "level1またはlevel2またはlevel3",
+  "bestReason": "最推奨レベルの理由（80字以内）",
+  "urgentAction": "今すぐすべきアクション（80字以内）"
+}`;
+
+    addLog('Claude AI 分析中...（10〜20秒かかります）', 'var(--blue)');
+
+    const responseText = await callClaudeAPI(prompt);
+
+    addLog('レスポンス受信 ✅', 'var(--green)');
+    await delay(200);
+
+    // JSON抽出
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSONの解析に失敗しました');
+    const aiResult = JSON.parse(jsonMatch[0]);
+
+    addLog('AI分析コメント: ' + aiResult.analysis, 'var(--blue)');
+    await delay(200);
+    addLog('Level 1 生成完了', 'var(--green)');
+    await delay(200);
+    addLog('Level 2 生成完了', 'var(--amber)');
+    await delay(200);
+    addLog('Level 3 生成完了', 'var(--purple)');
+    await delay(200);
+    addLog('最推奨: ' + aiResult.bestLevel.toUpperCase() + ' — ' + aiResult.bestReason, 'var(--green)');
+    await delay(200);
+    addLog('✅ Claude AIによるシフト提案が完了しました！', 'var(--green)');
+
+    // 通常の計算ロジックも実行（タイムライン表示用）
+    generatedLevels = {
+      cfg,
+      L1: calcLevel(cfg,'L1'),
+      L2: calcLevel(cfg,'L2'),
+      L3: calcLevel(cfg,'L3'),
+      aiResult: aiResult,
+    };
+
+    document.getElementById('genStatus').innerHTML = '<span style="color:var(--green);font-weight:700">✅ Claude AIシフト提案が完了しました！</span>';
+    btn.disabled=false; btn.textContent='✨ 再生成';
+
+    // 自動遷移
+    setTimeout(()=>{ goto('result'); renderResult(); }, 800);
+
+  } catch(err) {
+    addLog('❌ エラー: ' + err.message, 'var(--red)');
+    if(err.message.includes('401') || err.message.includes('invalid')){
+      addLog('APIキーが無効です。再入力してください。', 'var(--red)');
+      CLAUDE_API_KEY = '';
+      localStorage.removeItem('claude_api_key');
+    }
+    document.getElementById('genStatus').innerHTML = '<span style="color:var(--red);font-weight:700">❌ エラーが発生しました。ログを確認してください。</span>';
+    btn.disabled=false; btn.textContent='✨ 再試行';
+  }
+}
+
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function isRest(id){ return (staffWants[id]||'ok')==='rest'; }
+
+function calcLevel(cfg, level){
+  // レベル別のシフト計算ロジック
+  const allStaff = STAFF_MASTER;
+  const okStaff  = allStaff.filter(s=>!isRest(s.id));
+  const restStaff= allStaff.filter(s=>isRest(s.id));
+
+  let assigned, externalNeed=0, negotiateList=[];
+
+  if(level==='L1'){
+    assigned = allStaff; // 全員
+    negotiateList = restStaff;
+  } else if(level==='L2'){
+    assigned = okStaff; // 確定のみ
+    // 不足スキルを計算
+    const tangOk = okStaff.filter(s=>s.skills.tangbao>=3).length;
+    if(tangOk < 2) externalNeed = 2-tangOk;
+  } else {
+    assigned = okStaff;
+    externalNeed = Math.max(0, Math.round((cfg.baseH - okStaff.reduce((a,s)=>a+Math.min(s.maxH,8),0)) / 6));
+  }
+
+  // シフト割り当て（スキルスコア優先の貪欲法）
+  const shifts = buildShifts(assigned, cfg, level, externalNeed);
+  const totalH  = shifts.reduce((a,s)=>a+s.hours,0);
+  const labor   = Math.round(totalH * (cfg.wage||1050));
+  const rate    = cfg.sales>0 ? labor/cfg.sales*100 : 0;
+
+  // 充足率計算
+  const floorH_act  = shifts.filter(s=>s.pos==='floor').reduce((a,s)=>a+s.hours,0);
+  const kitH_act    = shifts.filter(s=>s.pos==='kitchen').reduce((a,s)=>a+s.hours,0);
+  const tangH_act   = shifts.filter(s=>s.pos==='tangbao').reduce((a,s)=>a+s.hours,0);
+  const floorSuf = Math.min(100, Math.round(floorH_act/Math.max(cfg.floorH,0.1)*100));
+  const kitSuf   = Math.min(100, Math.round(kitH_act/Math.max(cfg.kitH,0.1)*100));
+  const tangSuf  = Math.min(100, Math.round(tangH_act/Math.max(cfg.tangH,0.1)*100));
+
+  // 機会損失
+  const missRev = level==='L1'?0:
+                  level==='L2'?Math.round(cfg.sales*(1-Math.min(tangSuf,floorSuf)/100)*0.08):
+                                Math.round(cfg.sales*(1-Math.min(tangSuf,floorSuf)/100)*0.03);
+
+  return { shifts, labor, rate, floorSuf, kitSuf, tangSuf, totalH, externalNeed, negotiateList, missRev };
+}
+
+function buildShifts(staffList, cfg, level, externalNeed){
+  const shifts = [];
+  const wd = getWD();
+  const idx = WD_INDEX[wd]||WD_INDEX['水'];
+
+  // 各スタッフにシフトを割り当て
+  staffList.forEach((s,i)=>{
+    if(!s) return;
+    const maxH = s.maxH || 6;
+    // ピーク帯（10:00〜14:00）を中心に割り当て
+    const startSlot = Math.max(0, 4 + Math.floor(i*0.8) % 6);
+    const hours = Math.min(maxH, 4 + (i%3));
+    const endSlot = Math.min(TIME_SLOTS.length-1, startSlot + hours*2);
+    // ポジション判定（スキルスコア最大のポジションへ）
+    const pos = s.skills.tangbao>=4?'tangbao': s.skills.kitchen>s.skills.floor?'kitchen':'floor';
+    shifts.push({
+      id: s.id, name: s.name, role: s.role,
+      start: TIME_SLOTS[startSlot], end: TIME_SLOTS[endSlot],
+      startIdx: startSlot, endIdx: endSlot,
+      hours: Math.round((endSlot-startSlot)*0.5*10)/10,
+      pos, wage: s.wage||0, isExternal: false,
+    });
+  });
+
+  // Level3: 外部リソース追加
+  if(level==='L3' && externalNeed>0){
+    for(let i=0;i<Math.min(externalNeed,3);i++){
+      shifts.push({
+        id: 900+i, name: i===0?'他店応援①':i===1?'他店応援②':'タイミー', role:'応援',
+        start:'11:00', end:'16:00', startIdx:6, endIdx:16,
+        hours:5, pos:'floor', wage:1200, isExternal:true,
+      });
+    }
+  }
+  return shifts;
+}
+
+// ============================================================
+// RENDER RESULT
+// ============================================================
+const TIMES_DISPLAY = TIME_SLOTS;
+const TN = TIME_SLOTS.length;
+
+function renderResult(){
+  if(!generatedLevels) return;
+  const {cfg, L1, L2, L3, aiResult} = generatedLevels;
+
+  // AI分析パネル
+  if(aiResult){
+    const bestColor = aiResult.bestLevel==='level1'?'var(--green)':aiResult.bestLevel==='level2'?'var(--amber)':'var(--purple)';
+    const bestLabel = aiResult.bestLevel==='level1'?'Level 1（全力体制）':aiResult.bestLevel==='level2'?'Level 2（確定スタッフ）':'Level 3（外部活用）';
+    const aiPanel = document.getElementById('aiAnalysisPanel');
+    if(aiPanel) aiPanel.innerHTML = `
+      <div class="card" style="border-color:var(--green);background:rgba(0,212,106,.05);margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:20px">🤖</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green)">Claude AI 分析結果</div>
+            <div style="font-size:10px;color:var(--muted)">claude-sonnet-4-20250514</div>
+          </div>
+          <div style="margin-left:auto;background:${bestColor};color:#000;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">${bestLabel} 推奨</div>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:10px">${aiResult.analysis}</div>
+        <div style="background:var(--card2);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:700;color:${bestColor};margin-bottom:4px">📌 最推奨理由</div>
+          <div style="font-size:12px;color:var(--text)">${aiResult.bestReason}</div>
+        </div>
+        ${aiResult.urgentAction ? `<div style="margin-top:10px;background:var(--rdim);border:1px solid rgba(255,69,96,.2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:3px">⚡ 今すぐすべきアクション</div>
+          <div style="font-size:12px;color:var(--text)">${aiResult.urgentAction}</div>
+        </div>` : ''}
+        ${aiResult.level1?.staff ? `<div style="margin-top:12px">
+          <div class="sec-title">AI推奨シフト詳細</div>
+          ${['level1','level2','level3'].map(lv=>{
+            const lvData = aiResult[lv];
+            const lc = lv==='level1'?'var(--green)':lv==='level2'?'var(--amber)':'var(--purple)';
+            const ln = lv==='level1'?'L1':lv==='level2'?'L2':'L3';
+            return `<div style="margin-bottom:10px">
+              <div style="font-size:11px;font-weight:700;color:${lc};margin-bottom:6px">${ln}: ${lvData.title}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${(lvData.staff||[]).map(s=>`<div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px;border-left:2px solid ${lc}">
+                  <span style="font-weight:600">${s.name}</span>
+                  <span style="color:var(--muted);margin:0 4px">${s.start}〜${s.end}</span>
+                  <span style="color:${lc}">${s.position}</span>
+                  ${s.reason?`<div style="color:var(--dim);font-size:10px;margin-top:2px">${s.reason}</div>`:''}
+                </div>`).join('')}
+              </div>
+              ${lvData.risk?`<div style="margin-top:6px;font-size:10px;color:var(--amber)">⚠️ ${lvData.risk}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>`;
+  }
+
+  // 比較テーブル
+  const cKPI = document.getElementById('compareKPI');
+  const cols = ['指標','Level 1（全員）','Level 2（確定のみ）','Level 3（外部含む）'];
+  const rows = [
+    ['人件費率',
+      rateDisp(L1.rate), rateDisp(L2.rate), rateDisp(L3.rate)],
+    ['フロア充足率',
+      sufDisp(L1.floorSuf), sufDisp(L2.floorSuf), sufDisp(L3.floorSuf)],
+    ['キッチン充足率',
+      sufDisp(L1.kitSuf), sufDisp(L2.kitSuf), sufDisp(L3.kitSuf)],
+    ['湯包充足率',
+      sufDisp(L1.tangSuf), sufDisp(L2.tangSuf), sufDisp(L3.tangSuf)],
+    ['推定人件費',
+      L1.labor.toLocaleString('ja-JP')+'円', L2.labor.toLocaleString('ja-JP')+'円', L3.labor.toLocaleString('ja-JP')+'円'],
+    ['売上機会損失（推定）',
+      L1.missRev===0?'<span style="color:var(--green)">0円</span>':L1.missRev.toLocaleString()+'円',
+      '<span style="color:var(--red)">▲'+L2.missRev.toLocaleString('ja-JP')+'円</span>',
+      '<span style="color:var(--amber)">▲'+L3.missRev.toLocaleString('ja-JP')+'円</span>'],
+    ['交渉必要人数',
+      '<span style="color:var(--amber)">'+L1.negotiateList.length+'名</span>',
+      '<span style="color:var(--green)">0名</span>',
+      '<span style="color:var(--green)">0名</span>'],
+    ['外部リソースコスト',
+      '0円','0円',
+      '<span style="color:var(--purple)">'+Math.round(L3.externalNeed*5*1200).toLocaleString('ja-JP')+'円</span>'],
+    ['総合推奨度',
+      '<span style="color:var(--green);font-weight:700">◎ 最推奨</span>',
+      '<span style="color:var(--amber);font-weight:700">○ 次善策</span>',
+      '<span style="color:var(--purple);font-weight:700">△ 最終手段</span>'],
+  ];
+  cKPI.innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr>${cols.map((c,i)=>`<th style="padding:10px 14px;font-size:10px;font-weight:700;color:${i===0?'var(--dim)':i===1?'var(--green)':i===2?'var(--amber)':'var(--purple)'};text-align:${i===0?'left':'center'};background:var(--card2);border-bottom:1px solid var(--border)">${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((r,ri)=>`<tr style="border-bottom:1px solid ${ri<rows.length-1?'var(--border)':'transparent'}">${r.map((cell,ci)=>`<td style="padding:9px 14px;font-size:12px;font-family:var(--mono);text-align:${ci===0?'left':'center'};color:${ci===0?'var(--muted)':'var(--text)'}">${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+
+  // 各レベルのKPIと タイムライン
+  renderLevelBlock('l1', L1, 'var(--green)');
+  renderLevelBlock('l2', L2, 'var(--amber)');
+  renderLevelBlock('l3', L3, 'var(--purple)');
+
+  // Level1の交渉リスト
+  if(L1.negotiateList.length>0){
+    document.getElementById('l1Negotiate').innerHTML = `
+      <div style="background:var(--adim);border:1px solid rgba(255,176,32,.2);border-radius:8px;padding:12px 16px">
+        <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px">🤝 交渉が必要なスタッフ（${L1.negotiateList.length}名）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${L1.negotiateList.map(s=>`<div style="background:var(--card2);border-radius:6px;padding:5px 10px;font-size:11px">
+            <span style="font-weight:600">${s.name}</span>
+            <span style="color:var(--muted);margin-left:6px">${s.role}</span>
+            ${s.skills.tangbao>=3?'<span class="badge bb" style="margin-left:4px">湯包</span>':''}
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--amber)">
+          交渉優先度：湯包スキル保有者（${L1.negotiateList.filter(s=>s.skills.tangbao>=3).length}名）を最優先で交渉
+        </div>
+      </div>`;
+  } else {
+    document.getElementById('l1Negotiate').innerHTML = '<div style="color:var(--green);font-size:11px">✅ 交渉不要のスタッフのみで構成されています</div>';
+  }
+
+  // Level2 アラート
+  const l2Alerts = [];
+  if(L2.tangSuf<80) l2Alerts.push(`⚠️ 湯包充足率${L2.tangSuf}% → ピーク帯（11〜14時）に湯包スタッフ不足。売上機会損失リスク「高」`);
+  if(L2.floorSuf<85) l2Alerts.push(`⚠️ フロア充足率${L2.floorSuf}% → 接客品質の低下リスクあり`);
+  document.getElementById('l2Alert').innerHTML = l2Alerts.length>0 ?
+    `<div style="background:var(--rdim);border:1px solid rgba(255,69,96,.2);border-radius:8px;padding:12px 16px">
+      ${l2Alerts.map(a=>`<div style="font-size:11px;color:var(--red);margin-bottom:4px">${a}</div>`).join('')}
+    </div>` :
+    '<div style="color:var(--green);font-size:11px">✅ 確定スタッフで必要人員を充足できています</div>';
+
+  // Level3 外部リソース
+  document.getElementById('l3External').innerHTML = L3.externalNeed>0 ?
+    `<div style="background:var(--pdim);border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:12px 16px">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px">🔗 外部リソース割当</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="background:var(--card2);border-radius:6px;padding:8px 12px;font-size:11px"><span style="font-weight:700">他店舗応援</span> 優先推奨<br><span style="color:var(--muted)">スキル既知 / 追加コスト最小</span></div>
+        <div style="background:var(--card2);border-radius:6px;padding:8px 12px;font-size:11px"><span style="font-weight:700">タイミー</span> 最終手段<br><span style="color:var(--muted)">スキル未知 / 時給+150〜200円</span></div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">推定追加コスト: ${Math.round(L3.externalNeed*5*1200).toLocaleString('ja-JP')}円</div>
+    </div>` :
+    '<div style="color:var(--green);font-size:11px">✅ 外部リソース不要で充足できています</div>';
+}
+
+function rateDisp(r){
+  const c = r<15?'var(--green)':r<20?'var(--amber)':'var(--red)';
+  const lbl = r<15?'優良':r<20?'注意':'要改善';
+  return `<span style="color:${c};font-weight:700">${r.toFixed(1)}% <span style="font-size:9px">${lbl}</span></span>`;
+}
+function sufDisp(s){
+  const c = s>=90?'var(--green)':s>=75?'var(--amber)':'var(--red)';
+  return `<span style="color:${c};font-weight:700">${s}%</span>`;
+}
+
+function renderLevelBlock(prefix, level, color){
+  const kpiArea = document.getElementById(prefix+'Info');
+  kpiArea.innerHTML = [
+    {l:'出勤スタッフ',v:level.shifts.filter(s=>!s.isExternal).length+'名',c:'var(--text)'},
+    {l:'総WS時間',v:level.totalH.toFixed(1)+'h',c:color},
+    {l:'推定人件費',v:level.labor.toLocaleString('ja-JP')+'円',c:'var(--red)'},
+    {l:'人件費率',v:level.rate.toFixed(1)+'%',c:level.rate<15?'var(--green)':level.rate<20?'var(--amber)':'var(--red)'},
+  ].map(k=>`<div class="kpi"><div class="kpi-lbl">${k.l}</div><div class="kpi-val" style="color:${k.c};font-size:18px">${k.v}</div></div>`).join('');
+
+  // タイムライン
+  const shifts = level.shifts;
+  const hd = `<div class="shift-hd"><div class="shift-name-col">スタッフ</div><div class="shift-hours">${TIME_SLOTS.map(t=>
+    `<div class="shift-hour">${t.endsWith(':00')&&[8,10,12,14,16,18,20].includes(parseInt(t))?t.replace(':00',''):'·'}</div>`
+  ).join('')}</div></div>`;
+  const rows = shifts.map(s=>{
+    const si=s.startIdx; const ei=s.endIdx;
+    const lp=(si/TN*100).toFixed(1); const wp=((ei-si)/TN*100).toFixed(1);
+    const c=s.isExternal?'var(--purple)':s.pos==='tangbao'?'var(--blue)':s.pos==='kitchen'?'var(--amber)':'var(--green)';
+    const bg=s.isExternal?'rgba(168,85,247,.2)':s.pos==='tangbao'?'rgba(77,166,255,.2)':s.pos==='kitchen'?'rgba(255,176,32,.2)':'rgba(0,212,106,.2)';
+    const roleC=s.role==='店長'?'br':s.role==='社員'?'ba':s.isExternal?'bp':'bg';
+    return `<div class="shift-row">
+      <div class="shift-staff">
+        <div class="shift-sname">${s.name.replace('　',' ')}</div>
+        <div class="shift-srole"><span class="badge ${roleC}" style="font-size:7px">${s.role}</span></div>
+      </div>
+      <div class="shift-cells">
+        ${TIME_SLOTS.map(()=>'<div class="shift-cell"></div>').join('')}
+        <div class="shift-bar" style="left:${lp}%;width:${wp}%;background:${bg};border:1px solid ${c}40;color:${c}">${s.start}〜${s.end} ${s.hours}h</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById(prefix+'Timeline').innerHTML = hd+rows;
+}
+
+// ============================================================
+// PERFORMANCE ANALYSIS
+// ============================================================
+function renderPerformance(){
+  if(!generatedLevels){ document.getElementById('perfArea').innerHTML='<div style="color:var(--muted);padding:40px;text-align:center">先にAI生成を実行してください</div>'; return; }
+  const {cfg,L1,L2,L3} = generatedLevels;
+  const metrics = [
+    {label:'人件費率', unit:'%', best:Math.min(L1.rate,20), l1:L1.rate, l2:L2.rate, l3:L3.rate, lower:true},
+    {label:'フロア充足率', unit:'%', best:100, l1:L1.floorSuf, l2:L2.floorSuf, l3:L3.floorSuf, lower:false},
+    {label:'キッチン充足率', unit:'%', best:100, l1:L1.kitSuf, l2:L2.kitSuf, l3:L3.kitSuf, lower:false},
+    {label:'湯包充足率', unit:'%', best:100, l1:L1.tangSuf, l2:L2.tangSuf, l3:L3.tangSuf, lower:false},
+    {label:'機会損失リスク', unit:'万円', best:0, l1:L1.missRev/10000, l2:L2.missRev/10000, l3:L3.missRev/10000, lower:true},
+  ];
+
+  document.getElementById('perfArea').innerHTML = `
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;margin-bottom:16px">各指標の3レベル比較</div>
+      <div style="display:flex;gap:16px;margin-bottom:14px;font-size:11px;flex-wrap:wrap">
+        <span><span style="display:inline-block;width:12px;height:3px;background:var(--green);border-radius:2px;vertical-align:middle;margin-right:4px"></span>Level 1</span>
+        <span><span style="display:inline-block;width:12px;height:3px;background:var(--amber);border-radius:2px;vertical-align:middle;margin-right:4px"></span>Level 2</span>
+        <span><span style="display:inline-block;width:12px;height:3px;background:var(--purple);border-radius:2px;vertical-align:middle;margin-right:4px"></span>Level 3</span>
+      </div>
+      ${metrics.map(m=>{
+        const maxV = Math.max(m.l1,m.l2,m.l3,m.best,1);
+        const barL1 = Math.round(m.l1/maxV*100);
+        const barL2 = Math.round(m.l2/maxV*100);
+        const barL3 = Math.round(m.l3/maxV*100);
+        return `<div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px">
+            <span style="color:var(--muted)">${m.label}</span>
+            <div style="display:flex;gap:12px;font-family:var(--mono)">
+              <span style="color:var(--green)">L1:${m.l1.toFixed(1)}${m.unit}</span>
+              <span style="color:var(--amber)">L2:${m.l2.toFixed(1)}${m.unit}</span>
+              <span style="color:var(--purple)">L3:${m.l3.toFixed(1)}${m.unit}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${barL1}%;background:var(--green)"></div></div>
+            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${barL2}%;background:var(--amber)"></div></div>
+            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${barL3}%;background:var(--purple)"></div></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">判断マトリクス</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;background:var(--card2);border-bottom:1px solid var(--border);color:var(--muted)">状況</th>
+          <th style="padding:8px 12px;text-align:center;background:var(--gdim);border-bottom:1px solid var(--border);color:var(--green)">推奨Level</th>
+          <th style="padding:8px 12px;text-align:left;background:var(--card2);border-bottom:1px solid var(--border);color:var(--muted)">理由</th>
+        </tr></thead>
+        <tbody>
+          ${[
+            ['休み希望者が0〜1名','Level 1','交渉コストが低い。最高パフォーマンスを実現できる'],
+            ['休み希望者が2〜3名で湯包スキルなし','Level 2 or 1','湯包スタッフ確保が最優先。対象者のみ交渉を試みる'],
+            ['休み希望者が4名以上','Level 2','無理な交渉より確定スタッフで最善を尽くす'],
+            ['売上80万以上の超繁忙日','Level 1 優先','湯包不足の機会損失が最大。全員確保が費用対効果最高'],
+            ['売上40万以下の閑散日','Level 2で十分','過剰配置を避け人件費率を適正に保つ'],
+            ['台風・天候不良の予報日','Level 3準備','急な欠員に備えタイミー登録を前日までに完了'],
+          ].map(([s,r,reason],i)=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:9px 12px;color:var(--muted)">${s}</td>
+            <td style="padding:9px 12px;text-align:center;font-weight:700;color:${r.includes('1')?'var(--green)':r.includes('2')?'var(--amber)':'var(--purple)'}">${r}</td>
+            <td style="padding:9px 12px;color:var(--text)">${reason}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+// 初期希望状態を設定（デモ：一部をランダムに休み希望）
+STAFF_MASTER.forEach(s=>{
+  staffWants[s.id] = (s.id===6||s.id===8||s.id===11||s.id===15||s.id===19)?'rest':'ok';
+});
+calcRequired();
+</script>
+</body>
+</html>
