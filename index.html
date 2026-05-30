@@ -779,12 +779,13 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
 async function callClaudeAPI(prompt) {
   const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },  // ← ここが核心
     body: JSON.stringify({ message: prompt })
   });
   const data = await res.json();
-  return data.content || data.text || data.result || JSON.stringify(data);
-} 
+  // Make Webhook Responseが返す形式に合わせる
+  return data.text || data.content || data.result || JSON.stringify(data);
+}
     addLog('Claude AI 分析中...（10〜20秒かかります）', 'var(--blue)');
 
     const responseText = await callClaudeAPI(prompt);
