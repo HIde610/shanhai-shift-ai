@@ -775,22 +775,23 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
   "bestLevel": "level1またはlevel2またはlevel3",
   "bestReason": "最推奨レベルの理由（80字以内）",
   "urgentAction": "今すぐすべきアクション（80字以内）"
-}`;
+},
 async function callClaudeAPI(prompt) {
-      const safeMessage = prompt
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t');
-      const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: safeMessage })
-      });
-      const data = await res.json();
-      return data.text || data.content || data.result || JSON.stringify(data);
-    }
+  const safeMessage = prompt
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+  const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: safeMessage })
+  });
+  const data = await res.json();
+  return data.text || data.content || data.result || JSON.stringify(data);
+}
+`;
       addLog('Claude AI 分析中... (10〜20秒かかります) ', 'var(--blue)');
       const responseText = await callClaudeAPI(prompt);
       addLog('レスポンス受信 ✅', 'var(--green)');
