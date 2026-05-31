@@ -777,27 +777,14 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
   "urgentAction": "今すぐすべきアクション（80字以内）"
 }`;
 async function callClaudeAPI(prompt) {
-  const apiKey = CLAUDE_API_KEY || localStorage.getItem('claude_api_key') || '';
-  if (!apiKey) {
-    throw new Error('APIキーが設定されていません。右上の「🔑 APIキー設定」から入力してください。');
-  }
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const encoded = btoa(unescape(encodeURIComponent(prompt)));
+  const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }]
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: encoded })
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.content[0].text;
+  return data.text || data.content || data.result || JSON.stringify(data);
 }
     addLog('Claude AI 分析中...（10〜20秒かかります）', 'var(--blue)');
 
