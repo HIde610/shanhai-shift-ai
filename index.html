@@ -777,7 +777,7 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
   "urgentAction": "今すぐすべきアクション（80字以内）"
 }`;
 async function callClaudeAPI(prompt) {
-  const apiKey = document.getElementById('apiKeyInput')?.value || '';
+  const apiKey = CLAUDE_API_KEY || localStorage.getItem('claude_api_key') || '';
   if (!apiKey) {
     throw new Error('APIキーが設定されていません。右上の「🔑 APIキー設定」から入力してください。');
   }
