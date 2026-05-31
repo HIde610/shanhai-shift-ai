@@ -791,7 +791,7 @@ async function callClaudeAPI(prompt) {
   const data = await res.json();
   return data.text || data.content || data.result || JSON.stringify(data);
 }
-`;
+}`;
       addLog('Claude AI 分析中... (10〜20秒かかります) ', 'var(--blue)');
       const responseText = await callClaudeAPI(prompt);
       addLog('レスポンス受信 ✅', 'var(--green)');
