@@ -209,6 +209,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
   <div class="sb-divider"></div>
   <div class="sb-section">分析</div>
   <button class="sb-item" onclick="goto('performance')"><span>📈</span>パフォーマンス分析</button>
+  <button class="sb-item" onclick="goto('cs')"><span>🔍</span>CS分析</button>
 </aside>
 
 <!-- MAIN -->
@@ -427,6 +428,70 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
   <div id="perfArea"></div>
 </div>
 
+<!-- ===== PAGE: CS分析 ===== -->
+<div class="page" id="page-cs">
+  <div class="sec-title">CS分析 — 顧客アンケート AI分析</div>
+
+  <!-- APIキー設定エリア -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">🔑 Google Sheets API設定</div>
+    <div class="g2" style="gap:12px;align-items:flex-end">
+      <div class="form-group">
+        <span class="form-lbl">Sheets APIキー</span>
+        <input type="password" class="form-inp" id="sheetsApiKey" placeholder="AIzaSy..." style="font-family:monospace">
+      </div>
+      <button class="btn-primary" onclick="saveSheetsKey()" style="height:40px;padding:0 20px">保存</button>
+    </div>
+    <div id="sheetsKeyStatus" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+  </div>
+
+  <!-- フィルター -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="g2" style="gap:12px;align-items:flex-end">
+      <div class="form-group">
+        <span class="form-lbl">対象店舗</span>
+        <select class="form-inp" id="csStoreFilter">
+          <option value="all">全店舗</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <span class="form-lbl">取得件数</span>
+        <select class="form-inp" id="csLimitFilter">
+          <option value="100">最新100件</option>
+          <option value="300">最新300件</option>
+          <option value="500" selected>最新500件</option>
+          <option value="0">全件</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="loadCSData()" style="height:40px;padding:0 20px">📊 データ取得</button>
+    </div>
+  </div>
+
+  <!-- スコアサマリー -->
+  <div id="csScoreArea" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📈 評価スコアサマリー</div>
+      <div id="csScoreGrid" class="g3" style="gap:12px;margin-top:12px"></div>
+    </div>
+
+    <!-- AI分析 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🤖 Claude AI 改善提案</div>
+      <button class="btn-primary" onclick="runCSAnalysis()" id="csAnalyzeBtn" style="margin-bottom:12px">✨ AI分析を実行</button>
+      <div id="csAnalysisLog" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
+      <div id="csAnalysisResult" style="display:none"></div>
+    </div>
+
+    <!-- 自由記述一覧 -->
+    <div class="card">
+      <div class="card-title">💬 お客様の声（自由記述）</div>
+      <div id="csCommentList" style="max-height:400px;overflow-y:auto;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div id="csLoadLog" style="font-size:13px;color:var(--muted);margin-top:8px"></div>
+</div>
+
 </main>
 </div><!-- /layout -->
 
@@ -487,6 +552,8 @@ function goto(id){
   if(id==='staff') renderStaffGrid();
   if(id==='wants') renderWants();
   if(id==='performance' && generatedLevels) renderPerformance();
+  if(id==='cs') initCSPage();
+  if(id==='cs') initCSPage();
 }
 
 // ============================================================
@@ -1200,6 +1267,221 @@ STAFF_MASTER.forEach(s=>{
   staffWants[s.id] = (s.id===6||s.id===8||s.id===11||s.id===15||s.id===19)?'rest':'ok';
 });
 calcRequired();
+
+// ========== CS分析機能 ==========
+const SHEETS_ID = '1aHa3YosEtHtd3NmxLlLuQpZmSfnJXliTCLLIcQaOQB8';
+
+function saveSheetsKey() {
+  const key = document.getElementById('sheetsApiKey').value.trim();
+  if (!key) { alert('APIキーを入力してください'); return; }
+  localStorage.setItem('sheets_api_key', key);
+  document.getElementById('sheetsKeyStatus').textContent = '✅ 保存しました';
+  document.getElementById('sheetsApiKey').value = '';
+}
+
+function getSheetsKey() {
+  return localStorage.getItem('sheets_api_key') || '';
+}
+
+// ページ表示時にキー状態を確認
+function initCSPage() {
+  const key = getSheetsKey();
+  const status = document.getElementById('sheetsKeyStatus');
+  if (key) {
+    status.textContent = '✅ APIキー設定済み';
+    status.style.color = 'var(--green)';
+  } else {
+    status.textContent = '⚠️ APIキーを入力してください';
+    status.style.color = 'var(--amber)';
+  }
+}
+
+async function loadCSData() {
+  const key = getSheetsKey();
+  if (!key) { alert('先にSheetsAPIキーを保存してください'); return; }
+
+  const log = document.getElementById('csLoadLog');
+  const scoreArea = document.getElementById('csScoreArea');
+  scoreArea.style.display = 'none';
+  log.textContent = '→ Sheetsからデータ取得中...';
+
+  try {
+    const range = 'A:M';
+    const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SHEETS_ID + '/values/' + range + '?key=' + key;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('APIエラー: ' + res.status);
+    const data = await res.json();
+    const rows = data.values || [];
+    if (rows.length < 2) { log.textContent = '⚠️ データがありません'; return; }
+
+    const headers = rows[0];
+    let dataRows = rows.slice(1);
+
+    // 件数制限
+    const limit = parseInt(document.getElementById('csLimitFilter').value);
+    if (limit > 0 && dataRows.length > limit) {
+      dataRows = dataRows.slice(-limit);
+    }
+
+    // 店舗フィルター
+    const storeFilter = document.getElementById('csStoreFilter');
+    const stores = [...new Set(dataRows.map(r => r[4] || '').filter(s => s))].sort();
+    storeFilter.innerHTML = '<option value="all">全店舗</option>';
+    stores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      storeFilter.appendChild(opt);
+    });
+
+    const selectedStore = storeFilter.value;
+    if (selectedStore !== 'all') {
+      dataRows = dataRows.filter(r => r[4] === selectedStore);
+    }
+
+    log.textContent = '→ ' + dataRows.length + '件のデータを取得しました';
+    renderCSScores(dataRows);
+    renderCSComments(dataRows);
+    scoreArea.style.display = 'block';
+
+  } catch(e) {
+    log.textContent = '❌ エラー: ' + e.message;
+  }
+}
+
+function scoreToNum(s) {
+  if (!s) return 0;
+  const m = s.match(/★+/);
+  return m ? m[0].length : 0;
+}
+
+function renderCSScores(rows) {
+  const cols = [
+    { idx: 5, label: 'Q2 来店体験' },
+    { idx: 6, label: 'Q3 料理・ドリンク' },
+    { idx: 7, label: 'Q4 スタッフ接客' },
+    { idx: 8, label: 'Q5 価格満足度' },
+    { idx: 9, label: 'Q6 再来店意向' },
+  ];
+  const grid = document.getElementById('csScoreGrid');
+  grid.innerHTML = '';
+
+  cols.forEach(col => {
+    const scores = rows.map(r => scoreToNum(r[col.idx])).filter(s => s > 0);
+    const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+    const pct = (avg / 5) * 100;
+    const color = avg >= 4 ? 'var(--green)' : avg >= 3 ? 'var(--amber)' : 'var(--red)';
+
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.cssText = 'padding:12px;text-align:center';
+    div.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">' + col.label + '</div>'
+      + '<div style="font-size:28px;font-weight:700;color:' + color + '">' + avg.toFixed(1) + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + scores.length + '件 / 5点</div>'
+      + '<div style="background:var(--card2);border-radius:4px;height:6px;margin-top:6px">'
+      + '<div style="background:' + color + ';width:' + pct + '%;height:100%;border-radius:4px"></div></div>';
+    grid.appendChild(div);
+  });
+}
+
+function renderCSComments(rows) {
+  const list = document.getElementById('csCommentList');
+  const comments = rows
+    .filter(r => r[10] && r[10].length > 3)
+    .slice(-50)
+    .reverse();
+  list.innerHTML = comments.map(r => {
+    const store = r[4] || '';
+    const score = scoreToNum(r[5]);
+    const color = score >= 4 ? 'var(--green)' : score >= 3 ? 'var(--amber)' : 'var(--red)';
+    return '<div style="border-bottom:1px solid var(--border);padding:8px 0">'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">'
+      + '<span style="color:' + color + ';margin-right:8px">★'.repeat(score) + '</span>'
+      + store + '｜' + (r[1] || '').slice(0,10) + '</div>'
+      + '<div style="font-size:13px">' + (r[10] || '') + '</div></div>';
+  }).join('');
+}
+
+async function runCSAnalysis() {
+  if (!CLAUDE_API_KEY) { alert('Claude APIキーが設定されていません'); return; }
+  const btn = document.getElementById('csAnalyzeBtn');
+  const logEl = document.getElementById('csAnalysisLog');
+  const resultEl = document.getElementById('csAnalysisResult');
+  btn.disabled = true;
+  btn.textContent = '分析中...';
+  resultEl.style.display = 'none';
+  logEl.textContent = '→ Claude AIに分析を依頼中...';
+
+  // スコアデータを収集
+  const scoreEls = document.querySelectorAll('#csScoreGrid .card');
+  let scoreText = '';
+  scoreEls.forEach(el => {
+    const label = el.querySelector('div').textContent;
+    const score = el.querySelectorAll('div')[1].textContent;
+    scoreText += label + ': ' + score + '点
+';
+  });
+
+  // コメントを収集
+  const commentEls = document.querySelectorAll('#csCommentList > div');
+  const comments = Array.from(commentEls).slice(0, 30).map(el => el.querySelector('div:last-child').textContent).join('
+');
+
+  const store = document.getElementById('csStoreFilter').value;
+  const storeLabel = store === 'all' ? '全店舗' : store;
+
+  const prompt = '上海湯包小館' + storeLabel + 'のお客様アンケートデータを分析してください。
+
+【評価スコア】
+' + scoreText + '
+【お客様の声（抜粋）】
+' + comments + '
+
+以下の形式でJSONのみ返してください。説明文不要。
+{"summary":"全体総評（100字以内）","positives":["強み1","強み2","強み3"],"issues":["課題1","課題2","課題3"],"actions":["改善アクション1","改善アクション2","改善アクション3"],"ltv_hint":"LTV向上のヒント（50字以内）"}';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        system: 'あなたは飲食店のCS改善コンサルタントです。必ずvalidなJSONのみを返してください。',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    const result = JSON.parse(text.slice(firstBrace, lastBrace + 1));
+
+    resultEl.style.display = 'block';
+    resultEl.innerHTML =
+      '<div class="card" style="margin-bottom:12px;background:var(--card2)">'
+      + '<div style="font-size:13px;line-height:1.7">' + result.summary + '</div></div>'
+      + '<div class="g2" style="gap:12px;margin-bottom:12px">'
+      + '<div class="card"><div class="card-title" style="color:var(--green)">✅ 強み</div>'
+      + result.positives.map(p => '<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">• ' + p + '</div>').join('') + '</div>'
+      + '<div class="card"><div class="card-title" style="color:var(--red)">⚠️ 課題</div>'
+      + result.issues.map(i => '<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">• ' + i + '</div>').join('') + '</div></div>'
+      + '<div class="card" style="margin-bottom:12px"><div class="card-title">🎯 改善アクション</div>'
+      + result.actions.map((a,i) => '<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green);margin-right:8px">' + (i+1) + '.</span>' + a + '</div>').join('') + '</div>'
+      + '<div class="card" style="background:var(--card2)"><div class="card-title">💡 LTV向上ヒント</div>'
+      + '<div style="font-size:13px">' + result.ltv_hint + '</div></div>';
+
+    logEl.textContent = '✅ 分析完了';
+  } catch(e) {
+    logEl.textContent = '❌ エラー: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '✨ AI分析を実行';
+}
 </script>
 </body>
 </html>
