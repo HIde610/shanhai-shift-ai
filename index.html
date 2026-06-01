@@ -6,13 +6,13 @@
 <title>AI シフト最適化エンジン | 上海湯包小館</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
+:root
   --bg:     #0C0C0E;
   --panel:  #13131A;
   --card:   #1A1A24;
   --card2:  #20202E;
   --border: #2A2A3E;
-  --border2:#363650;
+  --border2:#363650
   --text:   #F0EFF8;
   --muted:  #7A7A9A;
   --dim:    #444460;
@@ -672,7 +672,7 @@ async function callClaudeAPI(prompt){
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': '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',
+          'x-api-key': CLAUDE_API_KEY,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
