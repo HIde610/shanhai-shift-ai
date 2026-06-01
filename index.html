@@ -11,7 +11,7 @@
   --panel:  #13131A;
   --card:   #1A1A24;
   --card2:  #20202E;
-  --border: #2A2A3E;
+  --border: #2A2A
   --border2:#363650;
   --text:   #F0EFF8;
   --muted:  #7A7A9A;
@@ -1417,14 +1417,12 @@ async function runCSAnalysis() {
   scoreEls.forEach(el => {
     const label = el.querySelector('div').textContent;
     const score = el.querySelectorAll('div')[1].textContent;
-    scoreText += label + ': ' + score + '点
-';
+    scoreText += label + ': ' + score + '点\n';
   });
 
   // コメントを収集
   const commentEls = document.querySelectorAll('#csCommentList > div');
-  const comments = Array.from(commentEls).slice(0, 30).map(el => el.querySelector('div:last-child').textContent).join('
-');
+  const comments = Array.from(commentEls).slice(0, 30).map(el => el.querySelector('div:last-child').textContent).join('\n');
 
   const store = document.getElementById('csStoreFilter').value;
   const storeLabel = store === 'all' ? '全店舗' : store;
