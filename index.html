@@ -750,6 +750,8 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
 
 以下の3つのシフト案をJSON形式で返してください。JSONのみ返し説明文は不要です：
 
+重要: 文字列値内にダブルクォート(")を使わないでください。必ず日本語テキストをそのまま記述し、改行は含めないでください。
+
 {
   "analysis": "全体状況の分析コメント（100字以内）",
   "level1": {
@@ -791,17 +793,26 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
     addLog('レスポンス受信 ✅', 'var(--green)');
     await delay(200);
 
-    // JSON抽出
-    let cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('JSONの解析に失敗しました。レスポンス: ' + responseText.slice(0,200));
+    // JSON抽出・クリーニング
+    let cleanedText = responseText
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+    // 最初の{から最後の}を抽出
+    const firstBrace = cleanedText.indexOf('{');
+    const lastBrace = cleanedText.lastIndexOf('}');
+    if(firstBrace === -1 || lastBrace === -1) throw new Error('JSONが見つかりません。レスポンス: ' + responseText.slice(0,200));
+    let jsonStr = cleanedText.slice(firstBrace, lastBrace + 1);
+    // 制御文字・不正文字を除去してからパース
+    jsonStr = jsonStr
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '') // 制御文字除去
+      .replace(/,\s*}/g, '}')   // 末尾カンマ除去
+      .replace(/,\s*]/g, ']');  // 末尾カンマ除去
     let aiResult;
-    try { aiResult = JSON.parse(jsonMatch[0]); }
-    catch(parseErr) {
-      // 末尾の不正文字を除去して再試行
-      const fixed = jsonMatch[0].replace(/,\s*([}\]])/g,'$1');
-      try { aiResult = JSON.parse(fixed); }
-      catch(e2) { throw new Error('JSONパースエラー: ' + parseErr.message + ' | text: ' + jsonMatch[0].slice(0,100)); }
+    try {
+      aiResult = JSON.parse(jsonStr);
+    } catch(parseErr) {
+      throw new Error('JSONパースエラー: ' + parseErr.message + ' | text: ' + jsonStr.slice(0,150));
     }
 
     addLog('AI分析コメント: ' + aiResult.analysis, 'var(--blue)');
