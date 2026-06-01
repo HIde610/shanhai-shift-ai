@@ -1427,15 +1427,7 @@ async function runCSAnalysis() {
   const store = document.getElementById('csStoreFilter').value;
   const storeLabel = store === 'all' ? '全店舗' : store;
 
-  const prompt = '上海湯包小館' + storeLabel + 'のお客様アンケートデータを分析してください。
-
-【評価スコア】
-' + scoreText + '
-【お客様の声（抜粋）】
-' + comments + '
-
-以下の形式でJSONのみ返してください。説明文不要。
-{"summary":"全体総評（100字以内）","positives":["強み1","強み2","強み3"],"issues":["課題1","課題2","課題3"],"actions":["改善アクション1","改善アクション2","改善アクション3"],"ltv_hint":"LTV向上のヒント（50字以内）"}';
+  const prompt = `上海湯包小館${storeLabel}のお客様アンケートデータを分析してください。\n\n【評価スコア】\n${scoreText}\n【お客様の声（抜粋）】\n${comments}\n\n以下の形式でJSONのみ返してください。説明文不要。\n{"summary":"全体総評（100字以内）","positives":["強み1","強み2","強み3"],"issues":["課題1","課題2","課題3"],"actions":["改善アクション1","改善アクション2","改善アクション3"],"ltv_hint":"LTV向上のヒント（50字以内）"}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
