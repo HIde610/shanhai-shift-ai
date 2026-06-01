@@ -667,21 +667,30 @@ function showApiKeyModal(){
 }
 
 async function callClaudeAPI(prompt){
-  const body = JSON.stringify({ message: prompt.replace(/[\n\r\t]/g, ' ') });
-  const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body
-  });
-  const text = await res.text();
-  try {
-    const data = JSON.parse(text);
-    return data.text || data.content || data.result || JSON.stringify(data);
-  } catch(e) {
-    throw new Error('レスポンスの解析に失敗: ' + text.substring(0, 200));
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': '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',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      if(data.content && data.content[0] && data.content[0].text){
+        return data.content[0].text;
+      }
+      throw new Error('レスポンス構造が不正: ' + JSON.stringify(data));
+    } catch(e) {
+      throw new Error('Claude API エラー: ' + e.message);
+    }
   }
-}
-
 async function runGenerate(){
   // APIキー確認
   if(!CLAUDE_API_KEY){
