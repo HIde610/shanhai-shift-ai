@@ -667,25 +667,19 @@ function showApiKeyModal(){
 }
 
 async function callClaudeAPI(prompt){
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const body = JSON.stringify({ message: prompt.replace(/[\n\r\t]/g, ' ') });
+  const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }]
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: body
   });
-  if(!res.ok){
-    const err = await res.json();
-    throw new Error(err.error?.message || 'API Error');
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    return data.text || data.content || data.result || JSON.stringify(data);
+  } catch(e) {
+    throw new Error('レスポンスの解析に失敗: ' + text.substring(0, 200));
   }
-  const data = await res.json();
-  return data.content[0].text;
 }
 
 async function runGenerate(){
