@@ -792,9 +792,17 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
     await delay(200);
 
     // JSON抽出
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('JSONの解析に失敗しました');
-    const aiResult = JSON.parse(jsonMatch[0]);
+    let cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSONの解析に失敗しました。レスポンス: ' + responseText.slice(0,200));
+    let aiResult;
+    try { aiResult = JSON.parse(jsonMatch[0]); }
+    catch(parseErr) {
+      // 末尾の不正文字を除去して再試行
+      const fixed = jsonMatch[0].replace(/,\s*([}\]])/g,'$1');
+      try { aiResult = JSON.parse(fixed); }
+      catch(e2) { throw new Error('JSONパースエラー: ' + parseErr.message + ' | text: ' + jsonMatch[0].slice(0,100)); }
+    }
 
     addLog('AI分析コメント: ' + aiResult.analysis, 'var(--blue)');
     await delay(200);
