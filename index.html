@@ -666,29 +666,33 @@ function showApiKeyModal(){
   return false;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+async function callClaudeAPI(prompt){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if(!res.ok){
+    const err = await res.json();
+    throw new Error(err.error?.message || 'API Error');
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
 
 async function runGenerate(){
+  // APIキー確認
+  if(!CLAUDE_API_KEY){
+    if(!showApiKeyModal()) return;
+  }
 
   const btn = document.getElementById('genBtn');
   btn.disabled = true; btn.textContent = '最適化中...';
@@ -775,34 +779,24 @@ ${staffData.map(s => `${s.名前}（${s.役職}）: ${s.出勤} / ${s.スキル}
   "bestLevel": "level1またはlevel2またはlevel3",
   "bestReason": "最推奨レベルの理由（80字以内）",
   "urgentAction": "今すぐすべきアクション（80字以内）"
-},
-async function callClaudeAPI(prompt) {
-  const safeMessage = prompt
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t');
-  const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: safeMessage })
-  });
-  const data = await res.json();
-  return data.text || data.content || data.result || JSON.stringify(data);
-}
 }`;
-      addLog('Claude AI 分析中... (10〜20秒かかります) ', 'var(--blue)');
-      const responseText = await callClaudeAPI(prompt);
-      addLog('レスポンス受信 ✅', 'var(--green)');
-      await delay(200);
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if(!jsonMatch) throw new Error('JSONの解析に失敗しました');
-      const aiResult = JSON.parse(jsonMatch[0]);
+
+    addLog('Claude AI 分析中...（10〜20秒かかります）', 'var(--blue)');
+
+    const responseText = await callClaudeAPI(prompt);
+
+    addLog('レスポンス受信 ✅', 'var(--green)');
+    await delay(200);
+
+    // JSON抽出
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSONの解析に失敗しました');
+    const aiResult = JSON.parse(jsonMatch[0]);
+
     addLog('AI分析コメント: ' + aiResult.analysis, 'var(--blue)');
     await delay(200);
     addLog('Level 1 生成完了', 'var(--green)');
-  await delay(200);
+    await delay(200);
     addLog('Level 2 生成完了', 'var(--amber)');
     await delay(200);
     addLog('Level 3 生成完了', 'var(--purple)');
