@@ -678,7 +678,8 @@ async function callClaudeAPI(prompt){
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2000,
+          max_tokens: 4000,
+          system: 'あなたはシフト管理AIです。必ずvalidなJSONのみを返してください。説明文・コードブロック・改行の混入は厳禁です。文字列値内にダブルクォートを使用しないでください。',
           messages: [{ role: 'user', content: prompt }]
         })
       });
