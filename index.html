@@ -940,20 +940,10 @@ function showApiKeyModal(){
 
 async function callClaudeAPI(prompt){
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 4000,
-          system: 'あなたはシフト管理AIです。必ずvalidなJSONのみを返してください。説明文・コードブロック・改行の混入は厳禁です。文字列値内にダブルクォートを使用しないでください。',
-          messages: [{ role: 'user', content: prompt }]
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt })
       });
       const data = await res.json();
       if(data.content && data.content[0] && data.content[0].text){
@@ -1635,20 +1625,10 @@ async function runCSAnalysis() {
   const prompt = `上海湯包小館${storeLabel}のお客様アンケートデータを分析してください。\n\n【評価スコア】\n${scoreText}\n【お客様の声（抜粋）】\n${comments}\n\n以下の形式でJSONのみ返してください。説明文不要。\n{"summary":"全体総評（100字以内）","positives":["強み1","強み2","強み3"],"issues":["課題1","課題2","課題3"],"actions":["改善アクション1","改善アクション2","改善アクション3"],"ltv_hint":"LTV向上のヒント（50字以内）"}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        system: 'あなたは飲食店のCS改善コンサルタントです。必ずvalidなJSONのみを返してください。',
-        messages: [{ role: 'user', content: prompt }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: prompt })
     });
     const data = await res.json();
     const text = data.content?.[0]?.text || '';
