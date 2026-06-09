@@ -946,9 +946,12 @@ async function callClaudeAPI(prompt){
         body: JSON.stringify({ message: prompt })
       });
       const data = await res.json();
-      if(data.content && data.content[0] && data.content[0].text){
-        return data.content[0].text;
-      }
+if(data && typeof data === 'string'){
+  return data;
+}
+if(data.content && data.content[0] && data.content[0].text){
+  return data.content[0].text;
+}
       throw new Error('レスポンス構造が不正: ' + JSON.stringify(data));
     } catch(e) {
       throw new Error('Claude API エラー: ' + e.message);
@@ -1631,7 +1634,7 @@ async function runCSAnalysis() {
       body: JSON.stringify({ message: prompt })
     });
     const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+　　 const text = (typeof data === 'string' ? data : data.content?.[0]?.text) || '';
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
     const result = JSON.parse(text.slice(firstBrace, lastBrace + 1));
