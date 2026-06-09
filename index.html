@@ -940,10 +940,10 @@ function showApiKeyModal(){
 
 async function callClaudeAPI(prompt) {
   try {
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbx3YTZuQ4POAbIdFPU8Hh_YeXhYF3RRJtFTy5SXnJUuZcfEjPbbSYEMwuDfMbRYNNUCbA/exec';
-    const url = GAS_URL + '?message=' + encodeURIComponent(prompt);
-    const res = await fetch(url, {
-      redirect: 'follow'
+    const res = await fetch('/.netlify/functions/claude-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: prompt })
     });
     const data = await res.text();
     return data;
