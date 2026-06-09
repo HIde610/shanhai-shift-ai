@@ -946,8 +946,8 @@ async function callClaudeAPI(prompt){
         body: JSON.stringify({ message: prompt })
       });
       const data = await res.json();
-if(data && typeof data === 'string'){
-  return data;
+if(data && data.text){
+  return data.text;
 }
 if(data.content && data.content[0] && data.content[0].text){
   return data.content[0].text;
