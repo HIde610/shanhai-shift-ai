@@ -938,19 +938,18 @@ function showApiKeyModal(){
   return false;
 }
 
-async function callClaudeAPI(prompt){
-    try {
-      const res = await fetch('https://script.google.com/macros/s/AKfycbwP09P0LGl_WF5aBqu099UFmWnfLRWUyUYpC55DCNBet7HakO4mP7Afs73ojH9Tej1C6w/exec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt })
-      });
-const data = await res.text();
-return data;
-    } catch(e) {
-      throw new Error('Claude API エラー: ' + e.message);
-    }
+async function callClaudeAPI(prompt) {
+  try {
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP09P0LGl_WF5aBqu099UFmWnfLRWUyUYpC55DCNBet7HakO4mP7Afs73ojH9Tej1C6w/exec';
+    const url = GAS_URL + '?message=' + encodeURIComponent(prompt);
+    const res = await fetch(url);
+    const data = await res.text();
+    return data;
+  } catch(e) {
+    throw new Error('Claude API エラー: ' + e.message);
   }
+}
+
 async function runGenerate(){
   // APIキー確認
   if(!CLAUDE_API_KEY){
