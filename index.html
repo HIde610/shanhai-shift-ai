@@ -942,7 +942,9 @@ async function callClaudeAPI(prompt) {
   try {
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbx3YTZuQ4POAbIdFPU8Hh_YeXhYF3RRJtFTy5SXnJUuZcfEjPbbSYEMwuDfMbRYNNUCbA/exec';
     const url = GAS_URL + '?message=' + encodeURIComponent(prompt);
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      redirect: 'follow'
+    });
     const data = await res.text();
     return data;
   } catch(e) {
