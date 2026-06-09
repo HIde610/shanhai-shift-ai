@@ -30,7 +30,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 4096,
         messages: [{ role: 'user', content: userMessage + '\n\n[ルステップ友だちデータ]\n' + lstepData + '\n\n必ずジェイソン形式のみで返答してください。前後に説明文や```json等のマークダウンは不要です。' }]
       })
     });
