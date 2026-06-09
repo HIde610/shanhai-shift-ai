@@ -8,19 +8,9 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
   try {
-    const LSTEP_TOKEN = process.env.LSTEP_TOKEN;
     const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
-
     const body = JSON.parse(event.body);
     const userMessage = body.message || '';
-
-    // ルステップ取得
-    const lstepRes = await fetch('https://api.lineml.jp/v2/api/friends', {
-      headers: { 'Authorization': 'Bearer ' + LSTEP_TOKEN }
-    });
-    const lstepData = await lstepRes.text();
-
-    // Claude API呼び出し
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -31,19 +21,24 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 4096,
-        messages: [{ role: 'user', content: userMessage + '\n\n[ルステップ友だちデータ]\n' + lstepData + '\n\n必ずジェイソン形式のみで返答してください。前後に説明文や```json等のマークダウンは不要です。' }]
+        messages: [{
+          role: 'user',
+          content: userMessage
+        }]
       })
     });
-
     const claudeData = await claudeRes.json();
     const resultText = claudeData.content[0].text;
-
     return {
       statusCode: 200,
       headers,
       body: resultText
     };
   } catch (err) {
-    return { statusCode: 500, headers, body: 'エラー: ' + err.message };
+    return {
+      statusCode: 500,
+      headers,
+      body: 'エラー: ' + err.message
+    };
   }
 };
