@@ -4,11 +4,9 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
-
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
-
   try {
     const LSTEP_TOKEN = process.env.LSTEP_TOKEN;
     const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
@@ -16,7 +14,7 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body);
     const userMessage = body.message || '';
 
-    // Lステップ取得
+    // ルステップ取得
     const lstepRes = await fetch('https://api.lineml.jp/v2/api/friends', {
       headers: { 'Authorization': 'Bearer ' + LSTEP_TOKEN }
     });
@@ -33,10 +31,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: userMessage + '\n\n【Lステップ友だちデータ】\n' + lstepData
-        }]
+        messages: [{ role: 'user', content: userMessage + '\n\n[ルステップ友だちデータ]\n' + lstepData }]
       })
     });
 
@@ -45,18 +40,10 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ result: resultText })
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
       headers,
-      body: 'エラー: ' + err.message
+      body: resultText
     };
+  } catch (err) {
+    return { statusCode: 500, headers, body: 'エラー: ' + err.message };
   }
 };
