@@ -898,7 +898,7 @@ ${negativeVOC}
 プロフェッショナルで具体的な表現を使い、経営者が即座にアクションできる内容にしてください。`;
 
   try {
-    const response = await fetch('/.netlify/functions/claude-proxy', {
+    const response = await fetch('https://musical-palmier-70a719.netlify.app/.netlify/functions/claude-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
