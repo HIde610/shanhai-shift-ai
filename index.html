@@ -625,6 +625,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
       <div id="l3External" style="margin-top:12px"></div>
     </div>
   </div>
+  <!-- LINE通知ボタン -->
+  <div style="margin-top:28px;text-align:center">
+    <button id="lineNotifyBtn" class="btn btn-primary" style="padding:14px 36px;font-size:14px;display:inline-flex;align-items:center;gap:10px" onclick="sendLineNotification()">
+      <span style="font-size:18px">💬</span> 確定してLINE通知
+    </button>
+    <div id="lineNotifyStatus" style="margin-top:10px;font-size:12px;min-height:20px"></div>
+  </div>
 </div>
 
 <!-- ===== PAGE: パフォーマンス分析 ===== -->
@@ -1727,6 +1734,48 @@ function spLogin(){
   }
 }
 
+// ============================================================
+// LINE通知送信
+// ============================================================
+const LINE_WEBHOOK_URL = 'https://hook.eu2.make.com/l6b15vgciwtrq372972qf7r652sbhm3s';
+
+async function sendLineNotification() {
+  const btn = document.getElementById('lineNotifyBtn');
+  const statusEl = document.getElementById('lineNotifyStatus');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.innerHTML = '<span style="font-size:18px">⏳</span> 送信中...';
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = '送信中です。しばらくお待ちください...';
+  try {
+    let shiftSummary = 'シフト確定通知';
+    if (generatedLevels) {
+      const { cfg, L1, L2, L3 } = generatedLevels;
+      const date = cfg ? cfg.date || '対象日' : '対象日';
+      shiftSummary = `【シフト確定】${date}\n店舗: ${cfg ? cfg.store || '上海湯包小館' : '上海湯包小館'}\n━━━━━━━━━━━━━\nL1（全員体制）人件費率: ${L1 ? L1.rate.toFixed(1) : '-'}%\nL2（確定スタッフ）人件費率: ${L2 ? L2.rate.toFixed(1) : '-'}%\nL3（外部含む）人件費率: ${L3 ? L3.rate.toFixed(1) : '-'}%\n━━━━━━━━━━━━━\nAIシフト最適化エンジンより`;
+    }
+    const response = await fetch(LINE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: shiftSummary, timestamp: new Date().toISOString() })
+    });
+    if (response.ok) {
+      btn.innerHTML = '<span style="font-size:18px">✅</span> 通知を送信しました';
+      btn.style.opacity = '1';
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = 'LINEへの通知が正常に送信されました。';
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.background = 'var(--red)';
+    btn.innerHTML = '<span style="font-size:18px">❌</span> 送信失敗 — 再試行';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `エラー: ${err.message}`;
+  }
+}
 </script>
 </body>
 </html>
