@@ -1021,7 +1021,7 @@ async function toggleSidebar() {
 
 function callClaudeAPI(prompt) {
   try {
-    const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
+    const res = await fetch('/api/generate-shift', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: prompt })
@@ -1704,7 +1704,7 @@ async function runCSAnalysis() {
   const prompt = `上海湯包小館${storeLabel}のお客様アンケートデータを分析してください。\n\n【評価スコア】\n${scoreText}\n【お客様の声（抜粋）】\n${comments}\n\n以下の形式でJSONのみ返してください。説明文不要。\n{"summary":"全体総評（100字以内）","positives":["強み1","強み2","強み3"],"issues":["課題1","課題2","課題3"],"actions":["改善アクション1","改善アクション2","改善アクション3"],"ltv_hint":"LTV向上のヒント（50字以内）"}`;
 
   try {
-    const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
+    const res = await fetch('/api/generate-shift', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: prompt })
