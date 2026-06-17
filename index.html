@@ -11,7 +11,7 @@
   --panel:  #13131A;
   --card:   #1A1A24;
   --card2:  #20202E;
-  --border: #2A2A
+  --border: #2A2A3A;
   --border2:#363650;
   --text:   #F0EFF8;
   --muted:  #7A7A9A;
@@ -342,6 +342,65 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
   #shifuLoginOverlay .sp-card{padding:26px 20px}
 }
 
+/* ===== SHIFU-MAX レスポンシブパッチ v2 ===== */
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 10px;
+  line-height: 1;
+}
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 52px; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 150;
+}
+.sidebar-overlay.open { display: block; }
+
+@media (max-width: 900px) {
+  .hamburger-btn { display: block; }
+  .sidebar {
+    display: block !important;
+    position: fixed !important;
+    top: 52px;
+    left: -290px;
+    width: 280px;
+    height: calc(100vh - 52px);
+    z-index: 200;
+    transition: left .25s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,.6);
+  }
+  .sidebar.open { left: 0; }
+  .main { padding: 16px 14px; }
+  .topbar { padding: 0 12px; gap: 10px; }
+  .topbar-sub { display: none; }
+  .topbar-title { font-size: 12px; }
+  .shift-tl { position: relative; }
+  .shift-name-col, .shift-staff {
+    position: sticky;
+    left: 0;
+    background: var(--card);
+    z-index: 5;
+    box-shadow: 2px 0 4px rgba(0,0,0,.3);
+  }
+}
+
+@media (max-width: 480px) {
+  html { font-size: 12px; }
+  .main { padding: 12px 10px; }
+  .topbar { padding: 0 10px; height: 48px; }
+  .topbar-logo { font-size: 16px; }
+  .topbar-title { font-size: 11px; }
+  #apiKeyBtn { font-size: 11px !important; padding: 5px 8px !important; }
+  button, .btn, .sb-item { min-height: 40px; }
+  input, select, textarea { font-size: 16px !important; }
+}
+/* ===== /パッチ ここまで ===== */
 </style>
 </head>
 <body>
@@ -391,7 +450,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <span class="topbar-logo">🤖</span>
+  <button id="hamburgerBtn" class="hamburger-btn" onclick="toggleSidebar()" aria-label="メニュー">☰</button>
+<span class="topbar-logo">🤖</span>
   <div>
     <div class="topbar-title">AIシフト最適化エンジン</div>
     <div class="topbar-sub">上海湯包小館 岡崎店 — powered by CLOGO</div>
@@ -400,6 +460,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
   <button onclick="showApiKeyModal()" style="margin-left:8px;padding:4px 12px;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:10px;cursor:pointer;font-family:var(--sans)" id="apiKeyBtn">🔑 APIキー設定</button>
 </div>
 
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div class="layout">
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -759,6 +820,10 @@ let generatedLevels = null;
 // ROUTING
 // ============================================================
 function goto(id){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -947,7 +1012,14 @@ function showApiKeyModal(){
   return false;
 }
 
-async function callClaudeAPI(prompt) {
+async function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('open');
+}
+
+function callClaudeAPI(prompt) {
   try {
     const res = await fetch('https://hook.eu2.make.com/f18b9zwf0f6xvb9lohxv33ef3b83sc5d', {
       method: 'POST',
